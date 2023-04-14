@@ -91,9 +91,6 @@ async def main():
                         bot_response = message["text"]
 
                 bot_response = re.sub('\[\^\d+\^\]', '', bot_response)
-
-                bot = Chatbot(cookiePath='cookies.json')
-                response = await bot.ask(prompt=user_input, conversation_style=ConversationStyle.creative)
                 # Select only the bot response from the response dictionary
                 for message in response["item"]["messages"]:
                     if message["author"] == "bot":
