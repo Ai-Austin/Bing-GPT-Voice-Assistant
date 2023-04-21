@@ -29,6 +29,6 @@ The setup for this project is relatively simple and has a detailed [youtube tuto
 5. Open a new terminal window and run the command ```cd path\you\copied``` using the path from step 1. Then run ```pip install -r requirements.txt``` to install the required packages
 
 ### Running the Assistant
-Simply open a terminal and move to the folder with the code ```cd path\you\copied``` or use the terminal from step 5 (you may need to press it twice if it doesn't shut down). Then run ```python main.py``` to start the assitant. To exit the assistant, press ```ctrl+c``` to stop the program.
+Simply open a terminal and move to the folder with the code ```cd path\you\copied``` or use the terminal from step 5. Then run ```python main.py``` to start the assitant. To exit the assistant, press ```ctrl+c``` to stop the program (you may need to press it twice if it doesn't shut down).
 
 
