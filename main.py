@@ -52,7 +52,7 @@ async def main():
                     with open("audio.wav", "wb") as f:
                         f.write(audio.get_wav_data())
                     # Use the preloaded tiny_model
-                    model = whisper.load_model("tiny")
+                    model = whisper.load_model("medium")
                     result = model.transcribe("audio.wav")
                     phrase = result["text"]
                     print(f"You said: {phrase}")

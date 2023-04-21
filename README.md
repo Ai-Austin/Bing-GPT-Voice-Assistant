@@ -1,13 +1,22 @@
 # Bing-GPT-Voice-Assistant
-This is a Python voice assistant that uses both OpenAI's 3.5 turbo model and bing's model with access to the internet for searchable results. All speech-to-text transcription is done locally using OpenAI's Whisper running on the local machine, and text-to-speech is done with AWS Polly.
 
-NOTE: You will need to have access to the bing AI search function to utilize this feature.
+This is a Python voice assistant that uses both OpenAI's 3.5 turbo model and Bing's model with access to the internet for searchable results. All speech-to-text transcription is done locally using OpenAI's Whisper running on the local machine, and text-to-speech is done with AWS Polly.
 
-# Setup
-The setup for this project is relatively simple and has a detailed [youtube tutorial](https://youtu.be/aokn48vB0kc), which briefly explains how the program works as well as providing a detailed installation guide. 
+*Note: You will need to have access to the Bing AI search function to utilize this feature.*
+
+## Table of Contents
+
+- [Setup](#setup)
+  - [Quick Setup](#quick-setup)
 
 
-## Quick Setup:
+
+## Setup
+The setup for this project is relatively simple and has a detailed [youtube tutorial](https://youtu.be/aokn48vB0kc), which briefly explains how the program works as well as providing a detailed installation guide.
+
+## Demonstration
+[demonstration](demonstration.mp4)
+
 ### Install and Setup
 1. install ffmpeg from their [website](https://ffmpeg.org/download.html), or by running ```sudo apt update && sudo apt install ffmpeg``` on Linux
 
@@ -20,6 +29,6 @@ The setup for this project is relatively simple and has a detailed [youtube tuto
 5. Open a new terminal window and run the command ```cd path\you\copied``` using the path from step 1. Then run ```pip install -r requirements.txt``` to install the required packages
 
 ### Running the Assistant
-Simply open a terminal and move to the folder with the code ```cd path\you\copied``` or use the terminal from step 5. Then run ```python main.py``` to start the assitant. To exit the assistant, press ```ctrl+c``` to stop the program.
+Simply open a terminal and move to the folder with the code ```cd path\you\copied``` or use the terminal from step 5 (you may need to press it twice if it doesn't shut down). Then run ```python main.py``` to start the assitant. To exit the assistant, press ```ctrl+c``` to stop the program.
 
 
