@@ -69,6 +69,8 @@ def getCookies(url):
 
 async def main():
     cookies = getCookies('.bing.com') #handling cookies of edge
+    # Use the preloaded tiny_model
+    model = whisper.load_model("tiny")
     while True:
 
         with sr.Microphone() as source:
@@ -79,8 +81,6 @@ async def main():
                 try:
                     with open("audio.wav", "wb") as f:
                         f.write(audio.get_wav_data())
-                    # Use the preloaded tiny_model
-                    model = whisper.load_model("tiny")
                     result = model.transcribe("audio.wav")
                     phrase = result["text"]
                     print(f"You said: {phrase}")
@@ -102,7 +102,6 @@ async def main():
             try:
                 with open("audio_prompt.wav", "wb") as f:
                     f.write(audio.get_wav_data())
-                model = whisper.load_model("base")
                 result = model.transcribe("audio_prompt.wav")
                 user_input = result["text"]
                 print(f"You said: {user_input}")
