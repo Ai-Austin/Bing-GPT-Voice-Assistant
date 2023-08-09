@@ -6,7 +6,7 @@ import boto3
 import pydub
 from pydub import playback
 import speech_recognition as sr
-from EdgeGPT import Chatbot, ConversationStyle
+from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
 
 # Initialize the OpenAI API
 openai.api_key = "[paste your OpenAI API key here]"
