@@ -6,7 +6,7 @@ import boto3
 import pydub
 from pydub import playback
 import speech_recognition as sr
-from EdgeGPT import Chatbot, ConversationStyle
+from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
 
 # Initialize the OpenAI API
 openai.api_key = "[paste your OpenAI API key here]"
@@ -40,7 +40,37 @@ def play_audio(file):
     sound = pydub.AudioSegment.from_file(file, format="mp3")
     playback.play(sound)
 
+#function to handle cookies
+def getCookies(url):
+    import browser_cookie3
+    browsers = [
+        # browser_cookie3.chrome,
+        # browser_cookie3.chromium,
+        # browser_cookie3.opera,
+        # browser_cookie3.opera_gx,
+        # browser_cookie3.brave,
+        browser_cookie3.edge,
+        # browser_cookie3.vivaldi,
+        # browser_cookie3.firefox,
+        # browser_cookie3.librewolf,
+        # browser_cookie3.safari,
+    ]
+    for browser_fn in browsers:
+        # if browser isn't installed browser_cookie3 raises exception
+        # hence we need to ignore it and try to find the right one
+        try:
+            cookies = []
+            cj = browser_fn(domain_name=url)
+            for cookie in cj:
+                cookies.append(cookie.__dict__)
+            return cookies
+        except:
+            continue
+
 async def main():
+    cookies = getCookies('.bing.com') #handling cookies of edge
+    # Use the preloaded tiny_model
+    model = whisper.load_model("tiny")
     while True:
 
         with sr.Microphone() as source:
@@ -51,8 +81,6 @@ async def main():
                 try:
                     with open("audio.wav", "wb") as f:
                         f.write(audio.get_wav_data())
-                    # Use the preloaded tiny_model
-                    model = whisper.load_model("tiny")
                     result = model.transcribe("audio.wav")
                     phrase = result["text"]
                     print(f"You said: {phrase}")
@@ -74,7 +102,6 @@ async def main():
             try:
                 with open("audio_prompt.wav", "wb") as f:
                     f.write(audio.get_wav_data())
-                model = whisper.load_model("base")
                 result = model.transcribe("audio_prompt.wav")
                 user_input = result["text"]
                 print(f"You said: {user_input}")
@@ -83,7 +110,7 @@ async def main():
                 continue
 
             if wake_word == BING_WAKE_WORD:
-                bot = Chatbot(cookie_path='cookies.json')
+                bot = Chatbot(cookies=cookies)
                 response = await bot.ask(prompt=user_input, conversation_style=ConversationStyle.precise)
                 # Select only the bot response from the response dictionary
                 for message in response["item"]["messages"]:
