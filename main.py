@@ -1,132 +1,97 @@
-import openai
-import asyncio
-import re
-import whisper
-import boto3
-import pydub
-from pydub import playback
+from os import system
+from EdgeGPT.EdgeUtils import Query
 import speech_recognition as sr
-from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
+import sys, whisper, warnings, time, openai
+
+# Wake word variables
+BING_WAKE_WORD = "bing"
+GPT_WAKE_WORD = "gpt"
 
 # Initialize the OpenAI API
 openai.api_key = "[paste your OpenAI API key here]"
 
-# Create a recognizer object and wake word variables
-recognizer = sr.Recognizer()
-BING_WAKE_WORD = "bing"
-GPT_WAKE_WORD = "gpt"
+r = sr.Recognizer()
+tiny_model = whisper.load_model('tiny')
+base_model = whisper.load_model('base')
+listening_for_wake_word = True
+bing_engine = True
+source = sr.Microphone() 
+warnings.filterwarnings("ignore", category=UserWarning, module='whisper.transcribe', lineno=114)
 
-def get_wake_word(phrase):
-    if BING_WAKE_WORD in phrase.lower():
-        return BING_WAKE_WORD
-    elif GPT_WAKE_WORD in phrase.lower():
-        return GPT_WAKE_WORD
+if sys.platform != 'darwin':
+    import pyttsx3
+    engine = pyttsx3.init()
+
+def speak(text):
+    if sys.platform == 'darwin':
+        ALLOWED_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,?!-_$:+-/ ")
+        clean_text = ''.join(c for c in text if c in ALLOWED_CHARS)
+        system(f"say '{clean_text}'")
     else:
-        return None
+        engine.say(text)
+        engine.runAndWait()
+
+def listen_for_wake_word(audio):
+    global listening_for_wake_word
+    global bing_engine
+    with open("wake_detect.wav", "wb") as f:
+        f.write(audio.get_wav_data())
+    result = tiny_model.transcribe('wake_detect.wav')
+    text_input = result['text']
+    if BING_WAKE_WORD in text_input.lower().strip():
+        print("Speak your prompt to Bing.")
+        speak('Listening')
+        listening_for_wake_word = False
+    elif GPT_WAKE_WORD in text_input.lower().strip():
+        print("Speak your prompt to GPT 3.5 Turbo.")
+        speak('Listening')
+        bing_engine = False
+        listening_for_wake_word = False
+
+def prompt_bing(audio):
+    global listening_for_wake_word
+    global bing_engine
+    try:
+        with open("prompt.wav", "wb") as f:
+            f.write(audio.get_wav_data())
+        result = base_model.transcribe('prompt.wav')
+        prompt_text = result['text']
+        if len(prompt_text.strip()) == 0:
+            print("Empty prompt. Please speak again.")
+            speak("Empty prompt. Please speak again.")
+            listening_for_wake_word = True
+        else:
+            print('User: ' + prompt_text)
+            output = Query(prompt_text)
+            print('Bing: ' + str(output))
+            speak(str(output))
+            print('\nSay Ok Bing or Ok GPT to wake me up. \n')
+            bing_engine = True
+            listening_for_wake_word = True
     
-def synthesize_speech(text, output_filename):
-    polly = boto3.client('polly', region_name='us-west-2')
-    response = polly.synthesize_speech(
-        Text=text,
-        OutputFormat='mp3',
-        VoiceId='Salli',
-        Engine='neural'
-    )
+    except Exception as e:
+        print("Prompt error: ", e)
+    
 
-    with open(output_filename, 'wb') as f:
-        f.write(response['AudioStream'].read())
-
-def play_audio(file):
-    sound = pydub.AudioSegment.from_file(file, format="mp3")
-    playback.play(sound)
-
-#function to handle cookies
-def getCookies(url):
-    import browser_cookie3
-    browsers = [
-        # browser_cookie3.chrome,
-        # browser_cookie3.chromium,
-        # browser_cookie3.opera,
-        # browser_cookie3.opera_gx,
-        # browser_cookie3.brave,
-        browser_cookie3.edge,
-        # browser_cookie3.vivaldi,
-        # browser_cookie3.firefox,
-        # browser_cookie3.librewolf,
-        # browser_cookie3.safari,
-    ]
-    for browser_fn in browsers:
-        # if browser isn't installed browser_cookie3 raises exception
-        # hence we need to ignore it and try to find the right one
-        try:
-            cookies = []
-            cj = browser_fn(domain_name=url)
-            for cookie in cj:
-                cookies.append(cookie.__dict__)
-            return cookies
-        except:
-            continue
-
-async def main():
-    cookies = getCookies('.bing.com') #handling cookies of edge
-    # Use the preloaded tiny_model
-    model = whisper.load_model("tiny")
-    while True:
-
-        with sr.Microphone() as source:
-            recognizer.adjust_for_ambient_noise(source)
-            print(f"Waiting for wake words 'ok bing' or 'ok chat'...")
-            while True:
-                audio = recognizer.listen(source)
-                try:
-                    with open("audio.wav", "wb") as f:
-                        f.write(audio.get_wav_data())
-                    result = model.transcribe("audio.wav")
-                    phrase = result["text"]
-                    print(f"You said: {phrase}")
-
-                    wake_word = get_wake_word(phrase)
-                    if wake_word is not None:
-                        break
-                    else:
-                        print("Not a wake word. Try again.")
-                except Exception as e:
-                    print("Error transcribing audio: {0}".format(e))
-                    continue
-
-            print("Speak a prompt...")
-            synthesize_speech('What can I help you with?', 'response.mp3')
-            play_audio('response.mp3')
-            audio = recognizer.listen(source)
-
-            try:
-                with open("audio_prompt.wav", "wb") as f:
-                    f.write(audio.get_wav_data())
-                result = model.transcribe("audio_prompt.wav")
-                user_input = result["text"]
-                print(f"You said: {user_input}")
-            except Exception as e:
-                print("Error transcribing audio: {0}".format(e))
-                continue
-
-            if wake_word == BING_WAKE_WORD:
-                bot = Chatbot(cookies=cookies)
-                response = await bot.ask(prompt=user_input, conversation_style=ConversationStyle.precise)
-                # Select only the bot response from the response dictionary
-                for message in response["item"]["messages"]:
-                    if message["author"] == "bot":
-                        bot_response = message["text"]
-                # Remove [^#^] citations in response
-                bot_response = re.sub('\[\^\d+\^\]', '', bot_response)
-
-            else:
-                # Send prompt to GPT-3.5-turbo API
-                response = openai.ChatCompletion.create(
+def prompt_gpt(audio):
+    global listening_for_wake_word
+    global bing_engine
+    try:
+        with open("prompt.wav", "wb") as f:
+            f.write(audio.get_wav_data())
+        result = base_model.transcribe('prompt.wav')
+        prompt_text = result['text']
+        if len(prompt_text.strip()) == 0:
+            print("Empty prompt. Please speak again.")
+            speak("Empty prompt. Please speak again.")
+            listening_for_wake_word = True
+        else:
+            response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content":
                         "You are a helpful assistant."},
-                        {"role": "user", "content": user_input},
+                        {"role": "user", "content": prompt_text},
                     ],
                     temperature=0.5,
                     max_tokens=150,
@@ -136,13 +101,30 @@ async def main():
                     n=1,
                     stop=["\nUser:"],
                 )
+            bot_response = response["choices"][0]["message"]["content"]
+            listening_for_wake_word = True
+            bing_engine = True
 
-                bot_response = response["choices"][0]["message"]["content"]
-                
-        print("Bot's response:", bot_response)
-        synthesize_speech(bot_response, 'response.mp3')
-        play_audio('response.mp3')
-        await bot.close()
+    except Exception as e:
+        print("Prompt error: ", e)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+def callback(recognizer, audio):
+    global listening_for_wake_word
+    global bing_engine
+    if listening_for_wake_word:
+        listen_for_wake_word(audio)
+    elif bing_engine == True:
+        prompt_bing(audio)
+    elif bing_engine == False:
+        prompt_gpt(audio)
+
+def start_listening():
+    with source as s:
+        r.adjust_for_ambient_noise(s, duration=2)
+    print('\nSay Ok Bing or Ok GPT to wake me up. \n')
+    r.listen_in_background(source, callback)
+    while True:
+        time.sleep(1) 
+
+if __name__ == '__main__':
+    start_listening() 
